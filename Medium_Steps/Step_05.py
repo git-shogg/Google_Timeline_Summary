@@ -8,10 +8,6 @@ for lat, long in zip(df['latitude'],df['longitude']):
 df['distance'] = distances_list
 df = df[df['distance'] < distance_from_point_of_interest]
 
-# If the dataframe is empty at this point (due to distance being too great) return an empty dataframe.
-if len(df) == 0:
-    return df
-
 # Breakdown the timestamp (which was an epoch ms timestamp) to some useful time based columns.
 df['timestamp'] = df['timestamp']/1000
 df['datetime'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1)
