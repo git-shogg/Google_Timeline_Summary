@@ -1,13 +1,24 @@
 ###############################################################################
 #                          5. Setup Useful Columns                            #
 ###############################################################################
-df['distance'] = df.apply(lambda row: distance.geodesic(point_of_interest, (row.latitude, row.longitude)).km, axis=1)   # https://stackoverflow.com/questions/51425127/pandas-go-through-2-columns-latitude-and-longitude-and-find-the-distance-bet/57106028
+# Determine the distance of each GPS coordinate from your point of interest.
+distances_list = []
+for lat, long in zip(df['latitude'],df['longitude']):
+    distances_list.append(distance.geodesic(point_of_interest,(lat,long)).km)
+df['distance'] = distances_list
 df = df[df['distance'] < distance_from_point_of_interest]
-df['datetime'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1)
-df['weekday'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3).strftime('%A'),axis=1)
-df['Year'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-df['Month'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.month
-df['Day'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.day
-df['Hour'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-df['Minute'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-df['Second'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
+
+# If the dataframe is empty at this point (due to distance being too great) return an empty dataframe.
+if len(df) == 0:
+    return df
+
+# Breakdown the timestamp (which was an epoch ms timestamp) to some useful time based columns.
+df['timestamp'] = df['timestamp']/1000
+df['datetime'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1)
+df['weekday'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp).strftime('%A'),axis=1)
+df['Year'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+df['Month'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.month
+df['Day'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.day
+df['Hour'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+df['Minute'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+df['Second'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year

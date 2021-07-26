@@ -15,11 +15,12 @@ def df_google_timeline_summary(point_of_interest, start_date,end_date=None,dista
     Returns:
         - Pandas Dataframe (df): A pandas dataframe that aggregates and summarizes the timeline history between two dates for a point of interest (excluding any weekday exceptions).
     '''
+       
     # Exceptions
     aggregate_options = ['Year','Month','Day','Hour','Second']
     if aggregate_by not in aggregate_options:
         raise ValueError("Invalid aggregate_by type. Expected one of: %s" % aggregate_options)
-
+    
     # User inputs
     start_date = datetime.datetime.strptime(start_date, '%d/%m/%Y')
     if end_date == None:
@@ -30,15 +31,15 @@ def df_google_timeline_summary(point_of_interest, start_date,end_date=None,dista
     # Reformat the start/end datetimes to epoch times in milliseconds
     start_datetime = datetime.datetime(start_year,start_month,start_day).timestamp()*1e3
     end_datetime = datetime.datetime(end_year,end_month,end_day).timestamp()*1e3
-
+    
     # Setup the aggregate list
     aggregate_list = aggregate_options[:aggregate_options.index(aggregate_by)+1]
-
+    
     # Get the data
     json_file = "Location History.json"
     data = json.load(open(json_file))   # Read the file
     locations = data['locations']
-
+    
     # Unpack the data
     df_rows = []
     for key in locations:
@@ -50,25 +51,35 @@ def df_google_timeline_summary(point_of_interest, start_date,end_date=None,dista
             df_rows.append([timestamp,latitude,longitude])
 
     df = pd.DataFrame(df_rows,columns=['timestamp','latitude','longitude'])
-
-    # Setup Useful Columns
-    df['distance'] = df.apply(lambda row: distance.geodesic(point_of_interest, (row.latitude, row.longitude)).km, axis=1)
+    
+    # Determine the distance of each GPS coordinate from your point of interest.
+    distances_list = []
+    for lat, long in zip(df['latitude'],df['longitude']):
+        distances_list.append(distance.geodesic(point_of_interest,(lat,long)).km)
+    df['distance'] = distances_list
     df = df[df['distance'] < distance_from_point_of_interest]
-    df['datetime'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1)
-    df['weekday'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3).strftime('%A'),axis=1)
-    df['Year'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-    df['Month'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.month
-    df['Day'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.day
-    df['Hour'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-    df['Minute'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
-    df['Second'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp/1e3),axis=1).dt.year
+    
+    # If the dataframe is empty at this point (due to distance being too great) return an empty dataframe.
+    if len(df) == 0:
+        return df
 
-    # Remove Weekday Exceptions and Aggregate the Results
+    # Breakdown the timestamp (which was an epoch ms timestamp) to some useful time based columns.
+    df['timestamp'] = df['timestamp']/1000
+    df['datetime'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1)
+    df['weekday'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp).strftime('%A'),axis=1)
+    df['Year'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+    df['Month'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.month
+    df['Day'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.day
+    df['Hour'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+    df['Minute'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+    df['Second'] = df.apply(lambda row: datetime.datetime.fromtimestamp(row.timestamp),axis=1).dt.year
+
+    # Remove Weekday Exceptions
     if weekday_exceptions != None:
         df = df[~df.weekday.isin(weekday_exceptions)]
+
+    # Aggregate the Results
     df = df.groupby(aggregate_list).agg({'timestamp':['count'],'distance':['mean']})
     
     return df
 
-df = df_google_timeline_summary((-27.464032634820306, 153.03057999435137),start_date='01/07/2019',weekday_exceptions=['Saturday'])
-print(df)
