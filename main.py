@@ -82,4 +82,3 @@ def df_google_timeline_summary(point_of_interest, start_date,end_date=None,dista
     df = df.groupby(aggregate_list).agg({'timestamp':['count'],'distance':['mean']})
     
     return df
-
