@@ -2,6 +2,9 @@
 ## Overview:
 The python function (in the main.py file) enables you to summarize your GPS location in relation to a point of interest for a given timeframe. 
 
+Medium Article: [Interrogating Google's Timeline Data](https://medium.com/@stephen.hogg.sh/interrogating-googles-timeline-data-ca22c3a9fd2c)
+
+
 ## Setup:
 1. Navigate [Google Takeout](https://takeout.google.com).
 2. Deselect all of the data.
